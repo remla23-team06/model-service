@@ -1,5 +1,10 @@
 # model-service
 
+## Install requirements
+```bash
+python3 -m pip install -r requirements.txt
+```
+
 ## Run the model server
 ```bash
 python3 model_server.py
