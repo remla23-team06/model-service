@@ -7,8 +7,6 @@ from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 from sklearn.feature_extraction.text import CountVectorizer
 
-
-
 def clean_review(review,ps,all_stopwords):
     review = re.sub('[^a-zA-Z]', ' ', review)
     review = review.lower()
@@ -25,7 +23,7 @@ def preprocess_input(input_data):
     all_stopwords = stopwords.words('english')
     all_stopwords.remove('not')
 
-    cvFile = 'c1_BoW_Sentiment_Model.pkl'
+    cvFile = 'models/c1_BoW_Sentiment_Model.pkl'
     cv = pickle.load(open(cvFile, "rb"))
 
     cleaned_review = clean_review(input_data,ps,all_stopwords)

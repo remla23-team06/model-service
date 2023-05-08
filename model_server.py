@@ -5,7 +5,7 @@ import joblib
 app = Flask(__name__)
 
 # Load the model
-model_path = "c2_Classifier_Sentiment_Model"
+model_path = "models/c2_Classifier_Sentiment_Model"
 model = joblib.load(model_path)
 
 @app.route('/predict', methods=['POST'])
@@ -24,8 +24,6 @@ def predict():
 
     # 3. Get predictions
     prediction = predictions[0]
-    
-    prediction = "positive" if prediction == 1 else "negative"
 
     return f"The prediction is {prediction}", 200
 

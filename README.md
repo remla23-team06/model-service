@@ -12,5 +12,5 @@ python3 model_server.py
 
 ## Test the model server with data
 ```bash
-python3 -c "import requests; r = requests.post('http://localhost:8080/predict', {'data': 42}); print(r.text)"
+python3 -c "import requests; r = requests.post('http://localhost:8080/predict', {'data': 'I was disgusted because I was pretty sure that was human hair.'}); print(r.text)"
 ```
