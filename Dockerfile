@@ -2,7 +2,6 @@
 FROM python:3.10
 
 # Configure Poetry
-ENV POETRY_VERSION=1.2.0
 ENV POETRY_HOME="/opt/poetry" \
     POETRY_VIRTUALENVS_IN_PROJECT=true \
     POETRY_NO_INTERACTION=1 \
