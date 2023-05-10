@@ -11,7 +11,7 @@ poetry update
 
 ## Run the model server
 ```bash
-poetry run flask --port 8000 --host 0.0.0.0
+poetry run flask --app model_server --port 8000 --host 0.0.0.0
 ```
 
 ## Test the model server with data
