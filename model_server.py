@@ -1,7 +1,7 @@
 import json
 
 import numpy as np
-from flask import Flask, request, jsonify
+from flask import Flask, request
 from preprocess import preprocess_input
 import joblib
 
@@ -37,3 +37,5 @@ def validate():
     prediction_was_correct: bool = json.loads(request.form['validation'])
 
     # Do something with the result of the validation of the prediction
+
+    return 200
