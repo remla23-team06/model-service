@@ -1,3 +1,5 @@
+import json
+
 from flask import Flask, request
 from preprocess import preprocess_input
 import joblib
@@ -7,6 +9,7 @@ app = Flask(__name__)
 # Load the model
 model_path = "models/c2_Classifier_Sentiment_Model"
 model = joblib.load(model_path)
+
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -25,7 +28,13 @@ def predict():
     # 3. Get predictions
     prediction = predictions[0]
 
-    return f"The prediction is {prediction}", 200
+    return {'sentiment': int(prediction)}, 200
 
-if __name__ == '__main__':
-    app.run(host="localhost", port=8080)
+
+@app.route("/validate", methods=['POST'])
+def validate():
+    prediction_was_correct: bool = json.loads(request.form['validation'])
+
+    # Do something with the result of the validation of the prediction
+
+    return "Thank you", 200
