@@ -5,7 +5,7 @@ FROM python:3.10
 ENV POETRY_HOME="/opt/poetry" \
     POETRY_VIRTUALENVS_IN_PROJECT=true \
     POETRY_NO_INTERACTION=1 \
-    POETRY_VERSION=1.2.0
+    POETRY_VERSION=1.4.2
 ENV PATH="$PATH:$POETRY_HOME/bin"
 
 # Set env variable for Flask App
@@ -24,8 +24,8 @@ COPY . /app
 WORKDIR /app
 
 # Install dependencies
-RUN poetry lock
-RUN poetry update
+RUN poetry config installer.max-workers 10
+RUN poetry update -vv --without dev
 
 # Run the Flask app when the container launches
 CMD ["poetry", "run", "flask", "run"]
