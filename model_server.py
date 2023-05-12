@@ -37,4 +37,4 @@ def validate():
 
     # Do something with the result of the validation of the prediction
 
-    return 200
+    return "Thank you", 200
