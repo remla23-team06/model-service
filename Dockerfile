@@ -28,5 +28,4 @@ RUN poetry lock
 RUN poetry update
 
 # Run the Flask app when the container launches
-ENTRYPOINT /bin/bash
 CMD ["poetry", "run", "flask", "run"]
