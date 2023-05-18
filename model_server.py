@@ -1,34 +1,54 @@
 import json
-
 from flask import Flask, request
-from preprocess import preprocess_input
-import joblib
+from model_interface import ModelInterface
+from flasgger import Swagger
 
 app = Flask(__name__)
+swagger = Swagger(app)
 
-# Load the model
-model_path = "models/c2_Classifier_Sentiment_Model"
-model = joblib.load(model_path)
+# Load the model interface
+model_interface = ModelInterface()
 
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    """Get predictions from the model."""
+    """
+    Obtain predictions from the sentiment analysis model.
+    On submitting a user review on this route, the sentiment of this review is predicted.
+    Predictions can either be 0 (negative sentiment) or 1 (positive sentiment).
+    ---
+    consumes:
+      - application/json
+    parameters:
+        - name: data
+          in: form-data
+          description: review to be classified
+          required: True
+          schema:
+            type: object
+            required: review
+            properties:
+                review:
+                    type: string
+                    example: This is a bad/good review.
+    produces:
+      - application/json
+    responses:
+      200:
+        description: Successful response
+    """
 
-    input_data = request.form["data"]
+    review = request.form["data"]
 
-    print("I received input data for the model: ", input_data)
+    print("I received input data for the model: ", review)
 
     # 1. Preprocess the input data
-    preprocessed_data = preprocess_input(input_data)
+    preprocessed_data = model_interface.process_input(review)
 
     # 2. Pass the preprocessed data through the model
-    predictions = model.predict(preprocessed_data)
+    prediction = model_interface.predict(preprocessed_data, pre_process=False)
 
-    # 3. Get predictions
-    prediction = predictions[0]
-
-    return {'sentiment': int(prediction)}, 200
+    return {'sentiment': prediction}, 200
 
 
 @app.route("/validate", methods=['POST'])
