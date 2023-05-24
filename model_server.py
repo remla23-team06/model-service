@@ -2,33 +2,32 @@ import json
 from flask import Flask, request
 from model_interface import ModelInterface
 from flasgger import Swagger
-from prometheus_flask_exporter import PrometheusMetrics
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
+from prometheus_client import Counter, Gauge, make_wsgi_app
 
 app = Flask(__name__)
-prom_metrics = PrometheusMetrics(app)
 swagger = Swagger(app)
+app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
+    "/metrics": make_wsgi_app()
+})
 
 # Load the model interface
 model_interface = ModelInterface()
 
-validations_counter = prom_metrics.counter(
-    'validations', 'The number of validations.',
-    labels={
-        'correct': lambda: json.loads(request.form['validation'])
-    }
-)
 
-predictions_counter = prom_metrics.counter(
-    'predictions', 'The number of predictions.', labels={'count': 1}
-)
+predictions = Counter('predictions', 'The number of predictions served by the model.')
+validations = Counter('validations', 'The number of validations that are correct/incorrect', ['is_correct'])
+validation_prediction_ratio = Gauge('validation_to_prediction_ratio', "The ratio of validations to predictions")
+
+def update_validation_prediction_ratio():
+  validation_prediction_ratio.set(0 if predictions._value.get() == 0 or not hasattr(predictions, '_value') or not hasattr(validations, '_value') else validations._value.get() / predictions._value.get() * 100)
+
 
 
 
 
 
 @app.route('/predict', methods=['POST'])
-@prom_metrics.do_not_track()
-@predictions_counter
 def predict():
     """
     Obtain predictions from the sentiment analysis model.
@@ -54,6 +53,8 @@ def predict():
     review = request.form.get("data")
     if review is None:
         return "The request should be form data with a key called \"data\".", 400
+    predictions.inc()
+    update_validation_prediction_ratio()
 
     print("I received input data for the model: ", review)
 
@@ -67,8 +68,6 @@ def predict():
 
 
 @app.route("/validate", methods=['POST'])
-@prom_metrics.do_not_track()
-@validations_counter
 def validate():
     """
     Save the validations provided by users to evaluate the performance of the model.
@@ -86,7 +85,12 @@ def validate():
       200:
         description: Successful response
       400:
-        description: A wrongly formatted request that is not form-data or does not contain the "data" key
+        description: A wrongly formatted request that is not form-data or does not contain the "validation" key
     """ 
-        
+    validation_request = request.form.get('validation')
+    if validation_request is None:
+         return "The request should be form data with a key called \"validation\".", 400
+    prediction_is_correct: bool = json.loads(validation_request)
+    validations.labels(is_correct=prediction_is_correct).inc()
+    update_validation_prediction_ratio()
     return "Thank you", 200
