@@ -2,23 +2,33 @@ import json
 from flask import Flask, request
 from model_interface import ModelInterface
 from flasgger import Swagger
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
+from prometheus_client import Counter, Gauge, make_wsgi_app
 
 app = Flask(__name__)
 swagger = Swagger(app)
+app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
+    "/metrics": make_wsgi_app()
+})
 
 # Load the model interface
 model_interface = ModelInterface()
 
-ALL_PREDICTIONS = 0
-CORRECT_PREDICTIONS = 0
-INCORRECT_PREDICTIONS = 0
-VALIDATIONS = 0
+
+predictions = Counter('predictions', 'The number of predictions served by the model.')
+validations = Counter('validations', 'The number of validations that are correct/incorrect', ['is_correct'])
+validation_prediction_ratio = Gauge('validation_to_prediction_ratio', "The ratio of validations to predictions")
+
+def update_validation_prediction_ratio():
+  validation_prediction_ratio.set(0 if predictions._value.get() == 0 or not hasattr(predictions, '_value') or not hasattr(validations, '_value') else validations._value.get() / predictions._value.get() * 100)
+
+
+
 
 
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    global ALL_PREDICTIONS
     """
     Obtain predictions from the sentiment analysis model.
     On submitting a user review on this route, the sentiment of this review is predicted.
@@ -43,8 +53,8 @@ def predict():
     review = request.form.get("data")
     if review is None:
         return "The request should be form data with a key called \"data\".", 400
-    
-    ALL_PREDICTIONS += 1
+    predictions.inc()
+    update_validation_prediction_ratio()
 
     print("I received input data for the model: ", review)
 
@@ -75,33 +85,12 @@ def validate():
       200:
         description: Successful response
       400:
-        description: A wrongly formatted request that is not form-data or does not contain the "data" key
-    """
-    global CORRECT_PREDICTIONS, INCORRECT_PREDICTIONS, VALIDATIONS
-    prediction_was_correct: bool = json.loads(request.form['validation'])
-
-    # Do something with the result of the validation of the prediction
-    VALIDATIONS += 1
-    if prediction_was_correct:
-        CORRECT_PREDICTIONS += 1
-    else:
-        INCORRECT_PREDICTIONS += 1
-        
+        description: A wrongly formatted request that is not form-data or does not contain the "validation" key
+    """ 
+    validation_request = request.form.get('validation')
+    if validation_request is None:
+         return "The request should be form data with a key called \"validation\".", 400
+    prediction_is_correct: bool = json.loads(validation_request)
+    validations.labels(is_correct=prediction_is_correct).inc()
+    update_validation_prediction_ratio()
     return "Thank you", 200
-
-@app.route('/metrics', methods=['GET'])
-def metrics():
-    """Send metrics for monitoring to Prometheus."""
-    global ALL_PREDICTIONS, CORRECT_PREDICTIONS, INCORRECT_PREDICTIONS # pylint: disable=W0602
-
-    m = "# HELP predictions The number of predictions.\n" # pylint: disable=C0103
-    m += "# TYPE predictions counter\n" # pylint: disable=C0103
-    m += "predictions{{correct=\"None\"}} {}\n".format(ALL_PREDICTIONS) # pylint: disable={C0103, C0209}
-    m += "predictions{{correct=\"True\"}} {}\n".format(CORRECT_PREDICTIONS) # pylint: disable={C0103, C0209}
-    m += "predictions{{correct=\"False\"}} {}\n".format(INCORRECT_PREDICTIONS) # pylint: disable={C0103, C0209}
-
-    m += "# HELP validations The number of validations.\n"
-    m += "# TYPE validations counter\n"
-    m += "validations {}".format(VALIDATIONS) # pylint: disable={C0103, C0209}
-
-    return m, 200
