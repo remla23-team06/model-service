@@ -100,4 +100,8 @@ def metrics():
     m += "predictions{{correct=\"True\"}} {}\n".format(CORRECT_PREDICTIONS) # pylint: disable={C0103, C0209}
     m += "predictions{{correct=\"False\"}} {}\n".format(INCORRECT_PREDICTIONS) # pylint: disable={C0103, C0209}
 
+    m += "# HELP validations The number of validations.\n"
+    m += "# TYPE validations counter\n"
+    m += "validations {}".format(VALIDATIONS) # pylint: disable={C0103, C0209}
+
     return m, 200
