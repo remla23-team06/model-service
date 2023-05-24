@@ -12,6 +12,7 @@ model_interface = ModelInterface()
 ALL_PREDICTIONS = 0
 CORRECT_PREDICTIONS = 0
 INCORRECT_PREDICTIONS = 0
+VALIDATIONS = 0
 
 
 
@@ -76,10 +77,11 @@ def validate():
       400:
         description: A wrongly formatted request that is not form-data or does not contain the "data" key
     """
-    global CORRECT_PREDICTIONS, INCORRECT_PREDICTIONS
+    global CORRECT_PREDICTIONS, INCORRECT_PREDICTIONS, VALIDATIONS
     prediction_was_correct: bool = json.loads(request.form['validation'])
 
     # Do something with the result of the validation of the prediction
+    VALIDATIONS += 1
     if prediction_was_correct:
         CORRECT_PREDICTIONS += 1
     else:
