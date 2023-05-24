@@ -19,7 +19,7 @@ validations_counter = prom_metrics.counter(
 )
 
 predictions_counter = prom_metrics.counter(
-    'predictions', 'The number of predictions.',
+    'predictions', 'The number of predictions.', labels={'count': 1}
 )
 
 
