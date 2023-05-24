@@ -17,10 +17,6 @@ model_interface = ModelInterface()
 
 predictions = Counter('predictions', 'The number of predictions served by the model.')
 validations = Counter('validations', 'The number of validations that are correct/incorrect', ['is_correct'])
-validation_prediction_ratio = Gauge('validation_to_prediction_ratio', "The ratio of validations to predictions")
-
-def update_validation_prediction_ratio():
-  validation_prediction_ratio.set(0 if predictions._value.get() == 0 or not hasattr(predictions, '_value') or not hasattr(validations, '_value') else validations._value.get() / predictions._value.get() * 100)
 
 
 
@@ -54,8 +50,6 @@ def predict():
     if review is None:
         return "The request should be form data with a key called \"data\".", 400
     predictions.inc()
-    update_validation_prediction_ratio()
-
     print("I received input data for the model: ", review)
 
     # 1. Preprocess the input data
@@ -92,5 +86,4 @@ def validate():
          return "The request should be form data with a key called \"validation\".", 400
     prediction_is_correct: bool = json.loads(validation_request)
     validations.labels(is_correct=prediction_is_correct).inc()
-    update_validation_prediction_ratio()
     return "Thank you", 200
