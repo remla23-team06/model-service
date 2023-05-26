@@ -12,7 +12,8 @@ class ModelInterface:
     def __init__(self,
                  model_path="models/c1_BoW_Sentiment_Model.pkl",
                  classifier_path="models/c2_Classifier_Sentiment_Model"):
-        self.model = pkl.load(open(model_path, "rb"))
+        with open(model_path, "rb") as model:
+            self.model = pkl.load(model)
         self.classifier = joblib.load(classifier_path)
         nltk.download('stopwords')
 
