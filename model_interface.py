@@ -1,3 +1,4 @@
+"""Define the model interface."""
 import re
 import pickle as pkl
 import nltk
@@ -20,12 +21,12 @@ class ModelInterface:
         """
         Preprocess the review data
         """
-        ps = PorterStemmer()
+        porter = PorterStemmer()
         all_stopwords = stopwords.words('english')
         all_stopwords.remove('not')
         equalized_review = re.sub('[^a-zA-Z]', ' ', review).lower().split()
         stemmed_review = " ".join(
-            [ps.stem(word) for word in equalized_review if word not in set(all_stopwords)])
+            [porter.stem(word) for word in equalized_review if word not in set(all_stopwords)])
         return stemmed_review
 
     def predict(self, review: str, pre_process=True) -> int:

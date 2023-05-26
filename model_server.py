@@ -1,9 +1,10 @@
+"""Implement the model service logic."""
 import json
 from flask import Flask, request
-from model_interface import ModelInterface
 from flasgger import Swagger
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from prometheus_client import Counter, make_wsgi_app
+from model_interface import ModelInterface
 
 app = Flask(__name__)
 swagger = Swagger(app)
