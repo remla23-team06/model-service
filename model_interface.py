@@ -7,7 +7,7 @@ from nltk.stem.porter import PorterStemmer
 
 
 class ModelInterface:
-    # Load Bag-of-Words (BoW) dictionary and classifier model
+    """Load Bag-of-Words (BoW) dictionary and classifier model."""
     def __init__(self,
                  model_path="models/c1_BoW_Sentiment_Model.pkl",
                  classifier_path="models/c2_Classifier_Sentiment_Model"):
@@ -24,7 +24,8 @@ class ModelInterface:
         all_stopwords = stopwords.words('english')
         all_stopwords.remove('not')
         equalized_review = re.sub('[^a-zA-Z]', ' ', review).lower().split()
-        stemmed_review = " ".join([ps.stem(word) for word in equalized_review if word not in set(all_stopwords)])
+        stemmed_review = " ".join(
+            [ps.stem(word) for word in equalized_review if word not in set(all_stopwords)])
         return stemmed_review
 
     def predict(self, review: str, pre_process=True) -> int:
