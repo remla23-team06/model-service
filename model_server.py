@@ -3,7 +3,7 @@ from flask import Flask, request
 from model_interface import ModelInterface
 from flasgger import Swagger
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
-from prometheus_client import Counter, Gauge, make_wsgi_app
+from prometheus_client import Counter, make_wsgi_app
 
 app = Flask(__name__)
 swagger = Swagger(app)
@@ -77,7 +77,7 @@ def validate():
       200:
         description: Successful response
       400:
-        description: A wrongly formatted request (not form-data or does not contain the "validation" key)
+        description: A wrongly formatted request (not form-data or doesn't contain "validation" key)
     """
     validation_request = request.form.get('validation')
     if validation_request is None:
