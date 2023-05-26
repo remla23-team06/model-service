@@ -13,4 +13,4 @@ jobs:
             - name: Install dependencies
               run: poetry -vv install --no-interaction --no-ansi
             - name: Run linting
-              run: poetry run pylint --load-plugins=dslinter app.py
+              run: poetry run pylint --load-plugins=dslinter .
