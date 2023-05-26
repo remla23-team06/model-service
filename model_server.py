@@ -16,11 +16,9 @@ model_interface = ModelInterface()
 
 
 predictions = Counter('predictions', 'The number of predictions served by the model.')
-validations = Counter('validations', 'The number of validations that are correct/incorrect', ['is_correct'])
-
-
-
-
+validations = Counter('validations',
+                      'The number of validations that are correct/incorrect',
+                      ['is_correct'])
 
 
 @app.route('/predict', methods=['POST'])
@@ -43,7 +41,7 @@ def predict():
       200:
         description: Successful response
       400:
-        description: A wrongly formatted request that is not form-data or does not contain the "data" key
+        description: A wrongly formatted request (no form-data or does not contain the "data" key)
     """
 
     review = request.form.get("data")
@@ -71,7 +69,7 @@ def validate():
     parameters:
         - name: validation
           in: form-data
-          description: a validation that is either True or False to indicate if the prediction was correct or incorrect respectively.
+          description: Either True or False to indicate if the prediction was correct or not
           required: True
     produces:
       - application/json
@@ -79,11 +77,11 @@ def validate():
       200:
         description: Successful response
       400:
-        description: A wrongly formatted request that is not form-data or does not contain the "validation" key
-    """ 
+        description: A wrongly formatted request (not form-data or does not contain the "validation" key)
+    """
     validation_request = request.form.get('validation')
     if validation_request is None:
-         return "The request should be form data with a key called \"validation\".", 400
+        return "The request should be form data with a key called \"validation\".", 400
     prediction_is_correct: bool = json.loads(validation_request)
     validations.labels(is_correct=prediction_is_correct).inc()
     return "Thank you", 200
