@@ -1,6 +1,7 @@
 """Define the model interface."""
 import pickle as pkl
 import joblib
+from sklearn.pipeline import Pipeline
 from remlaverlib import Preprocessor
 
 
@@ -10,7 +11,7 @@ class ModelInterface:
                  model_path="models/c1_BoW_Sentiment_Model.pkl",
                  classifier_path="models/c2_Classifier_Sentiment_Model"):
         with open(model_path, "rb") as model:
-            self.model = pkl.load(model)
+            self.model: Pipeline = pkl.load(model)
         self.classifier = joblib.load(classifier_path)
         self.preprocessor = Preprocessor()
 
