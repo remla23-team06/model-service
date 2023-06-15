@@ -1,10 +1,7 @@
 """Define the model interface."""
-import re
 import pickle as pkl
-import nltk
 import joblib
-from nltk.corpus import stopwords
-from nltk.stem.porter import PorterStemmer
+from remlaverlib import Preprocessor
 
 
 class ModelInterface:
@@ -15,26 +12,13 @@ class ModelInterface:
         with open(model_path, "rb") as model:
             self.model = pkl.load(model)
         self.classifier = joblib.load(classifier_path)
-        nltk.download('stopwords')
-
-    @staticmethod
-    def process_input(review: str) -> str:
-        """
-        Preprocess the review data
-        """
-        porter = PorterStemmer()
-        all_stopwords = stopwords.words('english')
-        all_stopwords.remove('not')
-        equalized_review = re.sub('[^a-zA-Z]', ' ', review).lower().split()
-        stemmed_review = " ".join(
-            [porter.stem(word) for word in equalized_review if word not in set(all_stopwords)])
-        return stemmed_review
+        self.preprocessor = Preprocessor()
 
     def predict(self, review: str, pre_process=True) -> int:
         """
         Predict the sentiment of a review
         """
-        processed_review = self.process_input(review) if pre_process else review
+        processed_review = self.preprocessor.process_input(review) if pre_process else review
         [transformed_review] = self.model.transform([processed_review]).toarray()
         predictions = self.classifier.predict([transformed_review])
         print(predictions)
