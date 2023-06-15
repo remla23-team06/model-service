@@ -5,15 +5,21 @@ description = "This repo serves the model so that it can be queried."
 authors = ["Your Name <you@example.com>"]
 readme = "README.md"
 
+[[tool.poetry.source]]
+name = "test"
+url = "https://test.pypi.org/simple"
+priority = "explicit"
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "default"
+
 
 [tool.poetry.dependencies]
-python = "^3.8"
+remlaverlib = {version = "^3.0.0", source = "test"}
+python = "^3.10"
 flask = "^2.3.2"
 requests = "^2.30.0"
-numpy = "^1.24.3"
-pandas = "^2.0.1"
-nltk = "^3.8.1"
-scikit-learn = "^1.2.2"
 flasgger = "^0.9.4"
 prometheus-client = "^0.16.0"
 
