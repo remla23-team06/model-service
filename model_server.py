@@ -16,10 +16,12 @@ app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
 model_interface = ModelInterface()
 
 
-predictions = Counter('predictions', 'The number of predictions served by the model.')
-validations = Counter('validations',
-                      'The number of validations that are correct/incorrect',
-                      ['is_correct'])
+predictions = Counter("predictions",
+                      "The number of predictions served by the model.",
+                      ["sender"])
+validations = Counter("validations",
+                      "The number of validations that are correct/incorrect",
+                      ["is_correct", "sender"])
 
 
 @app.route('/predict', methods=['POST'])
@@ -46,9 +48,10 @@ def predict():
     """
 
     review = request.form.get("data")
+    sender = request.form.get("sender")
     if review is None:
         return "The request should be form data with a key called \"data\".", 400
-    predictions.inc()
+    predictions.labels(sender=sender).inc()
     print("I received input data for the model: ", review)
 
     # 1. Preprocess the input data
@@ -60,7 +63,7 @@ def predict():
     return {'sentiment': prediction}, 200
 
 
-@app.route("/validate", methods=['POST'])
+@app.route("/validate", methods=["POST"])
 def validate():
     """
     Save the validations provided by users to evaluate the performance of the model.
@@ -80,9 +83,10 @@ def validate():
       400:
         description: A wrongly formatted request (not form-data or doesn't contain "validation" key)
     """
-    validation_request = request.form.get('validation')
+    validation_request = request.form.get("validation")
+    sender = request.form.get("sender")
     if validation_request is None:
         return "The request should be form data with a key called \"validation\".", 400
     prediction_is_correct: bool = json.loads(validation_request)
-    validations.labels(is_correct=prediction_is_correct).inc()
+    validations.labels(is_correct=prediction_is_correct, sender=sender).inc()
     return "Thank you", 200
