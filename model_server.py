@@ -55,7 +55,7 @@ def predict():
     print("I received input data for the model: ", review)
 
     # 1. Preprocess the input data
-    preprocessed_data = model_interface.process_input(review)
+    preprocessed_data = model_interface.preprocessor.process_input(review)
 
     # 2. Pass the preprocessed data through the model
     prediction = model_interface.predict(preprocessed_data, pre_process=False)
