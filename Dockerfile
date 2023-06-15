@@ -5,7 +5,7 @@ FROM python:3.10
 ENV POETRY_HOME="/opt/poetry" \
     POETRY_VIRTUALENVS_IN_PROJECT=true \
     POETRY_NO_INTERACTION=1 \
-    POETRY_VERSION=1.4.2
+    POETRY_VERSION=1.5.0
 ENV PATH="$PATH:$POETRY_HOME/bin"
 
 # Set env variable for Flask App
