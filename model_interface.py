@@ -8,8 +8,8 @@ from remlaverlib import Preprocessor
 class ModelInterface:
     """Load Bag-of-Words (BoW) dictionary and classifier model."""
     def __init__(self,
-                 model_path="models/c1_BoW_Sentiment_Model.pkl",
-                 classifier_path="models/c2_Classifier_Sentiment_Model"):
+                 model_path="C:\Courses\REMLA T06\model-service\models\c1_BoW_Sentiment_Model.pkl",
+                 classifier_path="C:\Courses\REMLA T06\model-service\models\c2_Classifier_Sentiment_Model"):
         with open(model_path, "rb") as model:
             self.model: Pipeline = pkl.load(model)
         self.classifier = joblib.load(classifier_path)
