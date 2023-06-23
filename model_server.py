@@ -31,6 +31,13 @@ review_rating_histogram = Histogram(
     labelnames=['rating']
 )
 
+# Define a gauge to track the accuracy rate of rating predictions
+accuracy_gauge = Gauge(
+    'review_prediction_accuracy',
+    'Accuracy rate of rating predictions'
+)
+
+
 
 @app.route('/predict', methods=['POST'])
 def predict():
