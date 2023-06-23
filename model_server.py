@@ -66,7 +66,7 @@ def process_review(review):
 
 # Assess Rating
 def asses_rating(review):
-    return 'NEUTRAL' if review == 2.5 else 'POSITIVE' if review > 2.5 else 'NEGATIVE'
+    return 'NEUTRAL' if review == 3 else 'POSITIVE' if review > 3 else 'NEGATIVE'
 
 @app.route('/predict', methods=['POST'])
 def predict():
