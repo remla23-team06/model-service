@@ -37,6 +37,17 @@ accuracy_gauge = Gauge(
     'Accuracy rate of rating predictions'
 )
 
+# Define a histogram that stores the total number of requests, correct reviews, and incorrect reviews
+# bucket 1 - correct reviews
+# bucket 2 - incorrect reviews
+# bucket 3 - total number of reviews
+review_accuracy_histogram = Histogram(
+    'review_correctness_distribution',
+    'Distribution of review ratings by correctness',
+    labelnames=['result']
+)
+
+
 
 
 @app.route('/predict', methods=['POST'])
