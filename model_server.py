@@ -3,7 +3,7 @@ import json
 from flask import Flask, request
 from flasgger import Swagger
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
-from prometheus_client import Counter, make_wsgi_app
+from prometheus_client import Counter, make_wsgi_app, Histogram, Gauge
 from model_interface import ModelInterface
 
 app = Flask(__name__)
@@ -15,13 +15,21 @@ app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
 # Load the model interface
 model_interface = ModelInterface()
 
-
 predictions = Counter("predictions",
                       "The number of predictions served by the model.",
                       ["sender"])
 validations = Counter("validations",
                       "The number of validations that are correct/incorrect",
                       ["is_correct", "sender"])
+
+# Accuracy for predictions
+# Define a Prometheus histogram for the review ratings
+review_rating_histogram = Histogram(
+    'review_rating',
+    'Distribution of review ratings',
+    buckets=[1, 2, 3, 4, 5],
+    labelnames=['rating']
+)
 
 
 @app.route('/predict', methods=['POST'])
@@ -90,3 +98,7 @@ def validate():
     prediction_is_correct: bool = json.loads(validation_request)
     validations.labels(is_correct=prediction_is_correct, sender=sender).inc()
     return "Thank you", 200
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
