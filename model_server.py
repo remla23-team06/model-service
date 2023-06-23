@@ -1,10 +1,10 @@
-"""Implement the model service logic."""
 import json
 from flask import Flask, request
 from flasgger import Swagger
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from prometheus_client import Counter, make_wsgi_app, Histogram, Gauge
 from model_interface import ModelInterface
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 app = Flask(__name__)
 swagger = Swagger(app)
@@ -18,6 +18,7 @@ model_interface = ModelInterface()
 predictions = Counter("predictions",
                       "The number of predictions served by the model.",
                       ["sender"])
+
 validations = Counter("validations",
                       "The number of validations that are correct/incorrect",
                       ["is_correct", "sender"])
@@ -48,8 +49,13 @@ review_accuracy_histogram = Histogram(
 )
 
 
-# helper function to process the review
 def process_review(review):
+    """
+    Process the review and update the appropriate metrics.
+
+    Args:
+        review (dict): The review data containing 'user_predict' and 'predicted' keys.
+    """
     assessed_rating = asses_rating(review['user_predict']).upper()
     actual_rating = review['predicted'].upper()
 
@@ -64,33 +70,31 @@ def process_review(review):
 
     review_accuracy_histogram.labels(result='Total_Reviews').observe(1)
 
-# Assess Rating
+
 def asses_rating(review):
+    """
+    Assess the rating based on the review value.
+
+    Args:
+        review (int): The review rating value.
+
+    Returns:
+        str: The assessed rating ('NEUTRAL', 'POSITIVE', or 'NEGATIVE').
+    """
     return 'NEUTRAL' if review == 3 else 'POSITIVE' if review > 3 else 'NEGATIVE'
+
 
 @app.route('/predict', methods=['POST'])
 def predict():
     """
     Obtain predictions from the sentiment analysis model.
+
     On submitting a user review on this route, the sentiment of this review is predicted.
     Predictions can either be 0 (negative sentiment) or 1 (positive sentiment).
-    ---
-    consumes:
-      - multipart/form-data
-    parameters:
-        - name: data
-          in: form-data
-          description: review to be classified
-          required: True
-    produces:
-      - application/json
-    responses:
-      200:
-        description: Successful response
-      400:
-        description: A wrongly formatted request (no form-data or does not contain the "data" key)
-    """
 
+    Returns:
+        dict: The prediction result containing the 'sentiment' key.
+    """
     review = request.form.get("data")
     sender = request.form.get("sender")
     if review is None:
@@ -111,22 +115,23 @@ def predict():
 def validate():
     """
     Save the validations provided by users to evaluate the performance of the model.
-    ---
-    consumes:
-      - multipart/form-data
-    parameters:
-        - name: validation
-          in: form-data
-          description: Either True or False to indicate if the prediction was correct or not
-          required: True
-    produces:
-      - application/json
-    responses:
-      200:
-        description: Successful response
-      400:
-        description: A wrongly formatted request (not form-data or doesn't contain "validation" key)
+
+    Returns:
+        str: A response indicating the successful validation save.
     """
+
+    # Compute the required values
+    bucket_values = review_accuracy_histogram.collect()
+    correct_reviews = next((value for value in bucket_values if value.labels.get('result') == 'Correct_Reviews'), None)
+    total_reviews = next((value for value in bucket_values if value.labels.get('result') == 'Total_Reviews'), None)
+    print("REACHED")
+
+    try:
+        accuracy_gauge.set(correct_reviews.sum / total_reviews.sum)
+    except (AttributeError, ZeroDivisionError):
+        # In case there is no correct review or no reviews at all
+        accuracy_gauge.set(0)
+
     validation_request = request.form.get("validation")
     sender = request.form.get("sender")
     if validation_request is None:
@@ -137,4 +142,4 @@ def validate():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
