@@ -48,7 +48,25 @@ review_accuracy_histogram = Histogram(
 )
 
 
+# helper function to process the review
+def process_review(review):
+    assessed_rating = asses_rating(review['user_predict']).upper()
+    actual_rating = review['predicted'].upper()
 
+    review_rating_histogram.observe(review['user_predict'])
+
+    if assessed_rating == actual_rating:
+        review_accuracy_histogram.labels(result='Correct_Reviews').observe(1)
+    elif assessed_rating != 'NEUTRAL':
+        review_accuracy_histogram.labels(result='Incorrect_Reviews').observe(1)
+    else:
+        review_accuracy_histogram.labels(result='Inconclusive_Reviews').observe(1)
+
+    review_accuracy_histogram.labels(result='Total_Reviews').observe(1)
+
+# Assess Rating
+def asses_rating(review):
+    return 'NEUTRAL' if review == 2.5 else 'POSITIVE' if review > 2.5 else 'NEGATIVE'
 
 @app.route('/predict', methods=['POST'])
 def predict():
