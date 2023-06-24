@@ -1,10 +1,11 @@
 import json
+import threading
 from flask import Flask, request
 from flasgger import Swagger
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from prometheus_client import Counter, make_wsgi_app, Histogram, Gauge
 from model_interface import ModelInterface
-import threading
+
 
 app = Flask(__name__)
 swagger = Swagger(app)
