@@ -5,6 +5,7 @@ from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from prometheus_client import Counter, make_wsgi_app, Histogram, Gauge
 from model_interface import ModelInterface
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+import threading
 
 app = Flask(__name__)
 swagger = Swagger(app)
@@ -15,26 +16,32 @@ app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
 # Load the model interface
 model_interface = ModelInterface()
 
-predictions = Counter("predictions",
-                      "The number of predictions served by the model.",
-                      ["sender"])
+sender_counts = {}
 
-validations = Counter("validations",
-                      "The number of validations that are correct/incorrect",
-                      ["is_correct", "sender"])
+global_lock = threading.Lock()
 
-# Accuracy for predictions
-# Define a Prometheus histogram for the review ratings
-review_rating_histogram = Histogram(
-    'review_rating',
-    'Distribution of review ratings',
-    buckets=[1, 2, 3, 4, 5]
+predictions = Counter(
+    "predictions",
+    "The number of predictions served by the model.",
+    ["sender"]
 )
 
-# Define a gauge to track the accuracy rate of rating predictions
+validations = Counter(
+    "validations",
+    "The number of validations that are correct/incorrect",
+    ["is_correct", "sender"]
+)
+
+review_rating_counter_hist = Counter(
+    'review_rating',
+    'Distribution of review ratings',
+    labelnames=["sender", "rating"]
+)
+
 accuracy_gauge = Gauge(
     'review_prediction_accuracy',
-    'Accuracy rate of rating predictions'
+    'Accuracy rate of rating predictions',
+    labelnames=["sender"]
 )
 
 # Define a histogram that stores the total number of requests, correct reviews, and incorrect reviews
@@ -45,40 +52,52 @@ accuracy_gauge = Gauge(
 review_accuracy_histogram = Histogram(
     'review_correctness_distribution',
     'Distribution of review ratings by correctness',
-    labelnames=['result'],
+    labelnames=['result', 'sender'],
     buckets=[0, 1, 2, 3]
 )
 
 
-def process_review(review_score, review_text):
+def process_review(review_score, is_review_correct, sender):
     """
     Process the review and update the appropriate metrics.
 
     Args:
         review_score (int): The review data containing 'user_predict' and 'predicted' keys.
-        review_text (str): The user's review text.
+        is_review_correct (bool): The user's review correct assessment.
+        sender (str): The sender for witch we record the metric.
     """
     review_score = int(review_score)
     assessed_rating = asses_rating(review_score).upper()
 
+    correct_count = 0
     actual_rating = 'NEGATIVE'
 
-    if get_prediction(review_text) == 1:
+
+    if is_review_correct:
+        correct_count = 1
         actual_rating = 'POSITIVE'
 
-    #    review_rating_histogram.labels(rating=str(review_scorea)).observe(review_score)
+    with global_lock:
+        if sender not in sender_counts:
+            sender_counts[sender] = {
+                'correct_count': 0,
+                'total_count': 0
+            }
 
-    review_rating_histogram.observe(review_score)
+    sender_counts[sender]['correct_count'] += correct_count
+    sender_counts[sender]['total_count'] += 1
+
+    review_rating_counter_hist.labels(sender=sender, rating=str(review_score)).inc()
 
     # Update the metric
     if assessed_rating == actual_rating:
-        review_accuracy_histogram.labels(result='Correct_Reviews').observe(0)
+        review_accuracy_histogram.labels(result='Correct_Reviews', sender=sender).observe(0)
     elif assessed_rating != 'NEUTRAL':
-        review_accuracy_histogram.labels(result='Wrong_Reviews').observe(1)
+        review_accuracy_histogram.labels(result='Wrong_Reviews', sender=sender).observe(1)
     else:
-        review_accuracy_histogram.labels(result='Inconclusive_Reviews').observe(2)
+        review_accuracy_histogram.labels(result='Inconclusive_Reviews', sender=sender).observe(2)
 
-    review_accuracy_histogram.labels(result='Total_Reviews').observe(3)
+    review_accuracy_histogram.labels(result='Total_Reviews', sender=sender).observe(3)
 
 
 def asses_rating(review):
@@ -147,15 +166,17 @@ def validate():
     if validation_request is None:
         return "The request should be form data with a key called \"validation\".", 400
 
-    print("found")
-    print(json.loads(validation_request)['rating'])
     res = json.loads(validation_request)
 
-    process_review(res['rating'], res['review'])
-    # prediction_is_correct: bool = json.loads(validation_request)
-    # validations.labels(is_correct=prediction_is_correct, sender=sender).inc()
+    prediction_is_correct = bool(res['prediction'])
+
+    process_review(res['rating'], prediction_is_correct, sender=sender)
+    validations.labels(is_correct=prediction_is_correct, sender=sender).inc()
+
+    total_count = sender_counts[sender]['total_count']
+    accuracy_rate = (sender_counts[sender]['correct_count'] / total_count) * 100 if total_count > 0 else 0
+
+    # Set the accuracy rate in the gauge
+    accuracy_gauge.labels(sender=sender).set(accuracy_rate)
+
     return "Thank you", 200
-
-
-if __name__ == '__main__':
-    app.run(debug=True, port=8000)

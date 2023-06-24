@@ -22,6 +22,5 @@ class ModelInterface:
         processed_review = self.preprocessor.process_input(review) if pre_process else review
         [transformed_review] = self.model.transform([processed_review]).toarray()
         predictions = self.classifier.predict([transformed_review])
-        print(predictions)
         [prediction] = predictions
         return int(prediction)
