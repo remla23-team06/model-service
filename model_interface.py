@@ -7,6 +7,7 @@ from remlaverlib import Preprocessor
 
 class ModelInterface:
     """Load Bag-of-Words (BoW) dictionary and classifier model."""
+
     def __init__(self,
                  model_path="C:\Courses\REMLA T06\model-service\models\c1_BoW_Sentiment_Model.pkl",
                  classifier_path="C:\Courses\REMLA T06\model-service\models\c2_Classifier_Sentiment_Model"):

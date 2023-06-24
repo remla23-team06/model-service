@@ -4,7 +4,6 @@ from flasgger import Swagger
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from prometheus_client import Counter, make_wsgi_app, Histogram, Gauge
 from model_interface import ModelInterface
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 import threading
 
 app = Flask(__name__)
@@ -71,7 +70,6 @@ def process_review(review_score, is_review_correct, sender):
 
     correct_count = 0
     actual_rating = 'NEGATIVE'
-
 
     if is_review_correct:
         correct_count = 1
