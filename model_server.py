@@ -28,8 +28,7 @@ validations = Counter("validations",
 review_rating_histogram = Histogram(
     'review_rating',
     'Distribution of review ratings',
-    buckets=[1, 2, 3, 4, 5],
-    labelnames=['rating']
+    buckets=[1, 2, 3, 4, 5]
 )
 
 # Define a gauge to track the accuracy rate of rating predictions
@@ -41,34 +40,45 @@ accuracy_gauge = Gauge(
 # Define a histogram that stores the total number of requests, correct reviews, and incorrect reviews
 # bucket 1 - correct reviews
 # bucket 2 - incorrect reviews
+# bucket 2 - inconclusive reviews
 # bucket 3 - total number of reviews
 review_accuracy_histogram = Histogram(
     'review_correctness_distribution',
     'Distribution of review ratings by correctness',
-    labelnames=['result']
+    labelnames=['result'],
+    buckets=[0, 1, 2, 3]
 )
 
 
-def process_review(review):
+def process_review(review_score, review_text):
     """
     Process the review and update the appropriate metrics.
 
     Args:
-        review (dict): The review data containing 'user_predict' and 'predicted' keys.
+        review_score (int): The review data containing 'user_predict' and 'predicted' keys.
+        review_text (str): The user's review text.
     """
-    assessed_rating = asses_rating(review['user_predict']).upper()
-    actual_rating = review['predicted'].upper()
+    review_score = int(review_score)
+    assessed_rating = asses_rating(review_score).upper()
 
-    review_rating_histogram.observe(review['user_predict'])
+    actual_rating = 'NEGATIVE'
 
+    if get_prediction(review_text) == 1:
+        actual_rating = 'POSITIVE'
+
+    #    review_rating_histogram.labels(rating=str(review_scorea)).observe(review_score)
+
+    review_rating_histogram.observe(review_score)
+
+    # Update the metric
     if assessed_rating == actual_rating:
-        review_accuracy_histogram.labels(result='Correct_Reviews').observe(1)
+        review_accuracy_histogram.labels(result='Correct_Reviews').observe(0)
     elif assessed_rating != 'NEUTRAL':
-        review_accuracy_histogram.labels(result='Incorrect_Reviews').observe(1)
+        review_accuracy_histogram.labels(result='Wrong_Reviews').observe(1)
     else:
-        review_accuracy_histogram.labels(result='Inconclusive_Reviews').observe(1)
+        review_accuracy_histogram.labels(result='Inconclusive_Reviews').observe(2)
 
-    review_accuracy_histogram.labels(result='Total_Reviews').observe(1)
+    review_accuracy_histogram.labels(result='Total_Reviews').observe(3)
 
 
 def asses_rating(review):
@@ -82,6 +92,24 @@ def asses_rating(review):
         str: The assessed rating ('NEUTRAL', 'POSITIVE', or 'NEGATIVE').
     """
     return 'NEUTRAL' if review == 3 else 'POSITIVE' if review > 3 else 'NEGATIVE'
+
+
+def get_prediction(review):
+    """
+    Gets the prediction using the model.
+
+    Args:
+        review (str): The review value.
+
+    Returns:
+        int: The assessed sentimet (0 or 1 - positive or negative)
+    """
+    # 1. Preprocess the input data
+    preprocessed_data = model_interface.preprocessor.process_input(review)
+
+    # 2. Pass the preprocessed data through the model
+    prediction = model_interface.predict(preprocessed_data, pre_process=False)
+    return prediction
 
 
 @app.route('/predict', methods=['POST'])
@@ -100,13 +128,8 @@ def predict():
     if review is None:
         return "The request should be form data with a key called \"data\".", 400
     predictions.labels(sender=sender).inc()
-    print("I received input data for the model: ", review)
 
-    # 1. Preprocess the input data
-    preprocessed_data = model_interface.preprocessor.process_input(review)
-
-    # 2. Pass the preprocessed data through the model
-    prediction = model_interface.predict(preprocessed_data, pre_process=False)
+    prediction = get_prediction(review)
 
     return {'sentiment': prediction}, 200
 
@@ -119,27 +142,20 @@ def validate():
     Returns:
         str: A response indicating the successful validation save.
     """
-
-    # Compute the required values
-    bucket_values = review_accuracy_histogram.collect()
-    correct_reviews = next((value for value in bucket_values if value.labels.get('result') == 'Correct_Reviews'), None)
-    total_reviews = next((value for value in bucket_values if value.labels.get('result') == 'Total_Reviews'), None)
-    print("REACHED")
-
-    try:
-        accuracy_gauge.set(correct_reviews.sum / total_reviews.sum)
-    except (AttributeError, ZeroDivisionError):
-        # In case there is no correct review or no reviews at all
-        accuracy_gauge.set(0)
-
     validation_request = request.form.get("validation")
     sender = request.form.get("sender")
     if validation_request is None:
         return "The request should be form data with a key called \"validation\".", 400
-    prediction_is_correct: bool = json.loads(validation_request)
-    validations.labels(is_correct=prediction_is_correct, sender=sender).inc()
+
+    print("found")
+    print(json.loads(validation_request)['rating'])
+    res = json.loads(validation_request)
+
+    process_review(res['rating'], res['review'])
+    # prediction_is_correct: bool = json.loads(validation_request)
+    # validations.labels(is_correct=prediction_is_correct, sender=sender).inc()
     return "Thank you", 200
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug=True, port=8000)
