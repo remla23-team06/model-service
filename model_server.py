@@ -67,7 +67,7 @@ def process_review(review_score, is_review_correct, sender):
         sender (str): The sender for witch we record the metric.
     """
     review_score = int(review_score)
-    assessed_rating = asses_rating(review_score).upper()
+    assessed_rating = assess_rating(review_score).upper()
 
     correct_count = 0
     actual_rating = 'NEGATIVE'
@@ -99,7 +99,7 @@ def process_review(review_score, is_review_correct, sender):
     review_accuracy_histogram.labels(result='Total_Reviews', sender=sender).observe(3)
 
 
-def asses_rating(review):
+def assess_rating(review):
     """
     Assess the rating based on the review value.
 
@@ -173,7 +173,10 @@ def validate():
     validations.labels(is_correct=prediction_is_correct, sender=sender).inc()
 
     total_count = sender_counts[sender]['total_count']
-    accuracy_rate = (sender_counts[sender]['correct_count'] / total_count) * 100 if total_count > 0 else 0
+    if total_count > 0:
+        accuracy_rate = (sender_counts[sender]['correct_count'] / total_count) * 100
+    else:
+        accuracy_rate = 0
 
     # Set the accuracy rate in the gauge
     accuracy_gauge.labels(sender=sender).set(accuracy_rate)
